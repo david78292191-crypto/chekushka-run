@@ -139,6 +139,9 @@
 </head>
 <body>
 
+    <!-- Фоновая музыка по прямой ссылке -->
+    <audio id="bgMusic" loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=8-bit-arcade-138828.mp3"></audio>
+
     <h1>Погоня за Чекушкой 🍾</h1>
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="400"></canvas>
@@ -164,11 +167,13 @@
         const overlayDesc = document.getElementById('overlay-desc');
         const startBtn = document.getElementById('startBtn');
         const muteBtn = document.getElementById('muteBtn');
+        const bgMusic = document.getElementById('bgMusic');
+        bgMusic.volume = 0.4; // Громкость фоновой музыки
 
-        // === ЗВУКОВОЙ ДВИЖОК (Web Audio API) ===
-        let audioCtx = null;
         let isMuted = false;
 
+        // Звуковой контекст для прыжков и сбора
+        let audioCtx = null;
         function initAudio() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -197,7 +202,6 @@
 
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-
             osc.start(now);
             osc.stop(now + 0.15);
         }
@@ -205,9 +209,7 @@
         function playBottleSound() {
             if (isMuted || !audioCtx) return;
             const now = audioCtx.currentTime;
-
-            // Бульк + звон стекла (две быстрые ноты)
-            const notes = [587.33, 880, 1174.66]; // D5, A5, D6
+            const notes = [587.33, 880, 1174.66];
             notes.forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
@@ -220,7 +222,6 @@
 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-
                 osc.start(now + i * 0.055);
                 osc.stop(now + i * 0.055 + 0.16);
             });
@@ -229,8 +230,6 @@
         function playCrashSound() {
             if (isMuted || !audioCtx) return;
             const now = audioCtx.currentTime;
-
-            // 1. Низкий гул удара
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sawtooth';
@@ -244,29 +243,13 @@
             gain.connect(audioCtx.destination);
             osc.start(now);
             osc.stop(now + 0.35);
-
-            // 2. Шумовой эффект столкновения
-            const bufferSize = audioCtx.sampleRate * 0.2;
-            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
-            const noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
-            const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.2, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-            noise.connect(noiseGain);
-            noiseGain.connect(audioCtx.destination);
-            noise.start(now);
         }
 
         muteBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             isMuted = !isMuted;
             muteBtn.innerText = isMuted ? '🔇' : '🔊';
+            bgMusic.muted = isMuted;
         });
 
         // === ЛОГИКА ИГРЫ ===
@@ -528,11 +511,16 @@
             player.jumps = 0;
             scoreEl.innerText = score;
             overlay.style.display = 'none';
+
+            // Запуск музыки
+            bgMusic.play().catch(() => {});
             animate();
         }
 
         function gameOver() {
             isGameOver = true;
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
             playCrashSound();
             cancelAnimationFrame(animationId);
             if (score > highScore) {
