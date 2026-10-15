@@ -12,7 +12,7 @@
         body {
             margin: 0;
             padding: 10px;
-            background-color: #1a1a2e;
+            background-color: #1a0a0a;
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -29,7 +29,7 @@
         h1 {
             margin: 0 0 8px 0;
             font-size: clamp(18px, 4vw, 28px);
-            color: #f39c12;
+            color: #ff4757;
             text-shadow: 2px 2px 4px #000;
             text-align: center;
         }
@@ -39,11 +39,11 @@
             max-width: 850px;
             max-height: calc(100dvh - 60px);
             aspect-ratio: 2 / 1;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
-            border: 3px solid #16213e;
+            box-shadow: 0 10px 30px rgba(255, 0, 0, 0.2);
+            border: 3px solid #570a0a;
             border-radius: 12px;
             overflow: hidden;
-            background: linear-gradient(to bottom, #0f3460, #533483);
+            background: linear-gradient(to bottom, #4a1515, #2c0b0b);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -87,7 +87,7 @@
         #overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(20, 0, 0, 0.9);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -99,7 +99,7 @@
         #overlay h2 {
             font-size: clamp(22px, 5vw, 36px);
             margin: 0 0 8px 0;
-            color: #e94560;
+            color: #ff4757;
         }
         #overlay p {
             font-size: clamp(13px, 3vw, 18px);
@@ -113,15 +113,15 @@
             font-size: clamp(16px, 4vw, 20px);
             font-weight: bold;
             color: #fff;
-            background-color: #e94560;
+            background-color: #ff4757;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            box-shadow: 0 4px 10px rgba(233, 69, 96, 0.4);
+            box-shadow: 0 4px 10px rgba(255, 71, 87, 0.4);
             transition: transform 0.1s, background-color 0.2s;
         }
         #startBtn:hover {
-            background-color: #ff2e4c;
+            background-color: #ff6b81;
         }
         #startBtn:active {
             transform: scale(0.95);
@@ -139,7 +139,7 @@
 </head>
 <body>
 
-    <h1>Погоня за Чекушкой 🍾</h1>
+    <h1>🩸 Погоня под Кровавой Луной 🍾</h1>
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="400"></canvas>
         <div id="ui">
@@ -148,9 +148,9 @@
         </div>
         <button id="muteBtn" title="Вкл/Выкл звук">🔊</button>
         <div id="overlay">
-            <h2 id="overlay-title">Погоня за Чекушкой</h2>
-            <p id="overlay-desc">Прыгай через препятствия и собирай заветные бутылочки!<br><br>Управление: <b>Тап по экрану</b> или <b>Пробел</b></p>
-            <button id="startBtn">🎵 Начать забег с музыкой!</button>
+            <h2 id="overlay-title">Кровавая Луна</h2>
+            <p id="overlay-desc">Доступен <b>ТРОЙНОЙ ПРЫЖОК</b>!<br>Прыгай через преграды под кровавой луной и собирай чекушки.</p>
+            <button id="startBtn">🎵 Начать забег!</button>
         </div>
     </div>
 
@@ -179,33 +179,32 @@
             }
         }
 
-        // Ритмичная 8-битная мелодия погони
-        const melodyNotes = [220, 246.94, 261.63, 293.66, 329.63, 293.66, 261.63, 246.94];
-        let noteStep = 0;
+        const tuneNotes = [196, 220, 246.94, 293.66, 261.63, 220, 196, 164.81];
+        let tuneStep = 0;
 
-        function playMusicBeat() {
+        function playMusicNote() {
             if (isMuted || !audioCtx || isGameOver) return;
             const now = audioCtx.currentTime;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(melodyNotes[noteStep], now);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(tuneNotes[tuneStep], now);
 
-            gain.gain.setValueAtTime(0.08, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+            gain.gain.setValueAtTime(0.04, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
-            osc.stop(now + 0.18);
+            osc.stop(now + 0.15);
 
-            noteStep = (noteStep + 1) % melodyNotes.length;
+            tuneStep = (tuneStep + 1) % tuneNotes.length;
         }
 
         function startMusic() {
             if (musicTimer) clearInterval(musicTimer);
-            musicTimer = setInterval(playMusicBeat, 180);
+            musicTimer = setInterval(playMusicNote, 160);
         }
 
         function stopMusic() {
@@ -221,16 +220,16 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sine';
-            const startFreq = jumpNum === 1 ? 180 : 280;
-            const endFreq = jumpNum === 1 ? 420 : 600;
+            const startFreq = 150 + jumpNum * 80;
+            const endFreq = 300 + jumpNum * 120;
             osc.frequency.setValueAtTime(startFreq, now);
-            osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.14);
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.12);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
-            osc.stop(now + 0.15);
+            osc.stop(now + 0.13);
         }
 
         function playBottleSound() {
@@ -257,8 +256,8 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(160, now);
-            osc.frequency.linearRampToValueAtTime(45, now + 0.35);
+            osc.frequency.setValueAtTime(140, now);
+            osc.frequency.linearRampToValueAtTime(35, now + 0.35);
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
             osc.connect(gain);
@@ -293,10 +292,10 @@
             width: 40,
             height: 50,
             dy: 0,
-            jumpStrength: -12,
-            gravity: 0.6,
+            jumpStrength: -11.5,
+            gravity: 0.55,
             jumps: 0,
-            maxJumps: 2,
+            maxJumps: 3, // ТРОЙНОЙ ПРЫЖОК!
             draw() {
                 ctx.font = '45px Arial';
                 ctx.textAlign = 'center';
@@ -375,7 +374,7 @@
                 this.angle += 0.1;
 
                 ctx.save();
-                ctx.shadowColor = '#f1c40f';
+                ctx.shadowColor = '#ff4757';
                 ctx.shadowBlur = 15;
                 ctx.fillText('🍾', this.x, this.y + 30);
                 ctx.restore();
@@ -399,7 +398,7 @@
             }
             draw() {
                 ctx.font = this.emoji === '🏢' ? '80px Arial' : '40px Arial';
-                ctx.globalAlpha = 0.3;
+                ctx.globalAlpha = 0.25;
                 ctx.fillText(this.emoji, this.x, this.y + (this.emoji === '🏢' ? 70 : 0));
                 ctx.globalAlpha = 1.0;
             }
@@ -422,7 +421,7 @@
                 ctx.save();
                 ctx.globalAlpha = Math.max(0, this.alpha);
                 ctx.font = 'bold 20px Arial';
-                ctx.fillStyle = '#2ecc71';
+                ctx.fillStyle = '#ff4757';
                 ctx.fillText(this.text, this.x, this.y);
                 ctx.restore();
             }
@@ -432,4 +431,157 @@
             const padding = 8;
             return (
                 rect1.x + padding < rect2.x + rect2.width - padding &&
-                rect1.x + rect1.width - padding
+                rect1.x + rect1.width - padding > rect2.x + padding &&
+                rect1.y + padding < rect2.y + rect2.height - padding &&
+                rect1.y + rect1.height - padding > rect2.y + padding
+            );
+        }
+
+        function drawEnvironment() {
+            // Кровавая луна с багровым свечением
+            ctx.save();
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 35;
+            ctx.font = '55px Arial';
+            ctx.fillText('🩸🌕', 680, 75);
+            ctx.restore();
+
+            // Дорога
+            ctx.fillStyle = '#1f0808';
+            ctx.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
+
+            ctx.fillStyle = '#570a0a';
+            ctx.fillRect(0, groundY, GAME_WIDTH, 6);
+
+            ctx.fillStyle = '#ff4757';
+            for (let i = 0; i < GAME_WIDTH; i += 60) {
+                let offset = (frame * gameSpeed) % 60;
+                ctx.fillRect(i - offset, groundY + 28, 30, 4);
+            }
+        }
+
+        function animate() {
+            if (isGameOver) return;
+
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            frame++;
+
+            if (frame % 500 === 0) {
+                gameSpeed += 0.5;
+            }
+
+            if (frame % 90 === 0) {
+                clouds.push(new Cloud());
+            }
+            clouds.forEach((cloud, index) => {
+                cloud.update();
+                if (cloud.x < -100) clouds.splice(index, 1);
+            });
+
+            drawEnvironment();
+            player.update();
+
+            if (frame % Math.max(45, Math.floor(100 - gameSpeed * 3)) === 0) {
+                if (Math.random() > 0.2) {
+                    obstacles.push(new Obstacle());
+                }
+            }
+
+            if (frame % 65 === 0) {
+                items.push(new Item());
+            }
+
+            obstacles.forEach((obs, index) => {
+                obs.update();
+                if (checkCollision(player, obs)) {
+                    gameOver();
+                }
+                if (obs.x + obs.width < 0) {
+                    obstacles.splice(index, 1);
+                }
+            });
+
+            items.forEach((item, index) => {
+                item.update();
+                if (checkCollision(player, item)) {
+                    score++;
+                    scoreEl.innerText = score;
+                    playBottleSound();
+                    particles.push(new FloatingText('+1 Бульк!', player.x, player.y));
+                    items.splice(index, 1);
+                } else if (item.x + item.width < 0) {
+                    items.splice(index, 1);
+                }
+            });
+
+            particles.forEach((p, index) => {
+                p.update();
+                if (p.alpha <= 0) particles.splice(index, 1);
+            });
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function startGame(e) {
+            if (e) e.stopPropagation();
+            initAudio();
+            isGameOver = false;
+            score = 0;
+            gameSpeed = 5.5;
+            frame = 0;
+            obstacles = [];
+            items = [];
+            clouds = [];
+            particles = [];
+            player.y = groundY - player.height;
+            player.dy = 0;
+            player.jumps = 0;
+            scoreEl.innerText = score;
+            overlay.style.display = 'none';
+
+            startMusic();
+            animate();
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            stopMusic();
+            playCrashSound();
+            cancelAnimationFrame(animationId);
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('chekushka_highscore', highScore);
+                highScoreEl.innerText = highScore;
+            }
+            overlayTitle.innerText = 'Споткнулся под луной! 💥';
+            overlayDesc.innerHTML = `Собрано чекушек: <b>${score}</b>.<br>Рекорд: <b>${highScore}</b>`;
+            startBtn.innerText = '🎵 Попробовать снова';
+            overlay.style.display = 'flex';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                if (isGameOver) {
+                    startGame();
+                } else {
+                    player.jump();
+                }
+            }
+        });
+
+        window.addEventListener('pointerdown', (e) => {
+            if (e.target === startBtn || e.target === muteBtn) return;
+            if (!isGameOver) {
+                e.preventDefault();
+                player.jump();
+            }
+        }, { passive: false });
+
+        startBtn.addEventListener('click', startGame);
+
+        drawEnvironment();
+        player.draw();
+    </script>
+</body>
+</html>
