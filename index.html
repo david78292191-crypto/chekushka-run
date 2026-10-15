@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Погоня за Чекушкой</title>
+    <title>Погоня под Кровавой Луной</title>
     <style>
         * {
             box-sizing: border-box;
@@ -139,6 +139,9 @@
 </head>
 <body>
 
+    <!-- Реальный аудио-тег с аркадной музыкой -->
+    <audio id="bgMusic" loop preload="auto" src="https://actions.google.com/sounds/v1/ambiences/arcade_room.ogg"></audio>
+
     <h1>🩸 Погоня под Кровавой Луной 🍾</h1>
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="400"></canvas>
@@ -149,8 +152,8 @@
         <button id="muteBtn" title="Вкл/Выкл звук">🔊</button>
         <div id="overlay">
             <h2 id="overlay-title">Кровавая Луна</h2>
-            <p id="overlay-desc">Доступен <b>ТРОЙНОЙ ПРЫЖОК</b>!<br>Прыгай через преграды под кровавой луной и собирай чекушки.</p>
-            <button id="startBtn">🎵 Начать забег!</button>
+            <p id="overlay-desc">Тройной прыжок активен!<br>Прыгай под кровавой луной и собирай чекушки.</p>
+            <button id="startBtn">🎵 Начать забег с музыкой!</button>
         </div>
     </div>
 
@@ -164,10 +167,11 @@
         const overlayDesc = document.getElementById('overlay-desc');
         const startBtn = document.getElementById('startBtn');
         const muteBtn = document.getElementById('muteBtn');
+        const bgMusic = document.getElementById('bgMusic');
+        bgMusic.volume = 0.6;
 
-        let audioCtx = null;
         let isMuted = false;
-        let musicTimer = null;
+        let audioCtx = null;
 
         function initAudio() {
             if (!audioCtx) {
@@ -176,41 +180,6 @@
             }
             if (audioCtx.state === 'suspended') {
                 audioCtx.resume();
-            }
-        }
-
-        const tuneNotes = [196, 220, 246.94, 293.66, 261.63, 220, 196, 164.81];
-        let tuneStep = 0;
-
-        function playMusicNote() {
-            if (isMuted || !audioCtx || isGameOver) return;
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-
-            osc.type = 'square';
-            osc.frequency.setValueAtTime(tuneNotes[tuneStep], now);
-
-            gain.gain.setValueAtTime(0.04, now);
-            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.15);
-
-            tuneStep = (tuneStep + 1) % tuneNotes.length;
-        }
-
-        function startMusic() {
-            if (musicTimer) clearInterval(musicTimer);
-            musicTimer = setInterval(playMusicNote, 160);
-        }
-
-        function stopMusic() {
-            if (musicTimer) {
-                clearInterval(musicTimer);
-                musicTimer = null;
             }
         }
 
@@ -270,8 +239,7 @@
             e.stopPropagation();
             isMuted = !isMuted;
             muteBtn.innerText = isMuted ? '🔇' : '🔊';
-            if (isMuted) stopMusic();
-            else if (!isGameOver) startMusic();
+            bgMusic.muted = isMuted;
         });
 
         const GAME_WIDTH = 800;
@@ -295,7 +263,7 @@
             jumpStrength: -11.5,
             gravity: 0.55,
             jumps: 0,
-            maxJumps: 3, // ТРОЙНОЙ ПРЫЖОК!
+            maxJumps: 3,
             draw() {
                 ctx.font = '45px Arial';
                 ctx.textAlign = 'center';
@@ -438,7 +406,6 @@
         }
 
         function drawEnvironment() {
-            // Кровавая луна с багровым свечением
             ctx.save();
             ctx.shadowColor = '#ff0000';
             ctx.shadowBlur = 35;
@@ -446,7 +413,6 @@
             ctx.fillText('🩸🌕', 680, 75);
             ctx.restore();
 
-            // Дорога
             ctx.fillStyle = '#1f0808';
             ctx.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
 
@@ -539,13 +505,16 @@
             scoreEl.innerText = score;
             overlay.style.display = 'none';
 
-            startMusic();
+            // Жесткий запуск музыки по клику на кнопку старта
+            bgMusic.currentTime = 0;
+            bgMusic.play().catch(err => console.log(err));
+
             animate();
         }
 
         function gameOver() {
             isGameOver = true;
-            stopMusic();
+            bgMusic.pause();
             playCrashSound();
             cancelAnimationFrame(animationId);
             if (score > highScore) {
@@ -555,7 +524,7 @@
             }
             overlayTitle.innerText = 'Споткнулся под луной! 💥';
             overlayDesc.innerHTML = `Собрано чекушек: <b>${score}</b>.<br>Рекорд: <b>${highScore}</b>`;
-            startBtn.innerText = '🎵 Попробовать снова';
+            startBtn.innerText = '🎵 Играть снова';
             overlay.style.display = 'flex';
         }
 
