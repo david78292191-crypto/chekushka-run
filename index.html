@@ -87,7 +87,7 @@
         #overlay {
             position: absolute;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -103,7 +103,7 @@
         }
         #overlay p {
             font-size: clamp(13px, 3vw, 18px);
-            margin: 0 0 18px 0;
+            margin: 0 0 16px 0;
             color: #ddd;
             max-width: 500px;
             line-height: 1.4;
@@ -139,9 +139,6 @@
 </head>
 <body>
 
-    <!-- Фоновая музыка по прямой ссылке -->
-    <audio id="bgMusic" loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf756.mp3?filename=8-bit-arcade-138828.mp3"></audio>
-
     <h1>Погоня за Чекушкой 🍾</h1>
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="400"></canvas>
@@ -152,8 +149,8 @@
         <button id="muteBtn" title="Вкл/Выкл звук">🔊</button>
         <div id="overlay">
             <h2 id="overlay-title">Погоня за Чекушкой</h2>
-            <p id="overlay-desc">Прыгай через препятствия и собирай заветные бутылочки!<br><br>Управление: <b>Тап по экрану</b> или <b>Пробел</b> (доступен двойной прыжок в воздухе)</p>
-            <button id="startBtn">Начать забег</button>
+            <p id="overlay-desc">Прыгай через препятствия и собирай заветные бутылочки!<br><br>Управление: <b>Тап по экрану</b> или <b>Пробел</b></p>
+            <button id="startBtn">🎵 Начать забег с музыкой!</button>
         </div>
     </div>
 
@@ -167,13 +164,11 @@
         const overlayDesc = document.getElementById('overlay-desc');
         const startBtn = document.getElementById('startBtn');
         const muteBtn = document.getElementById('muteBtn');
-        const bgMusic = document.getElementById('bgMusic');
-        bgMusic.volume = 0.4; // Громкость фоновой музыки
 
-        let isMuted = false;
-
-        // Звуковой контекст для прыжков и сбора
         let audioCtx = null;
+        let isMuted = false;
+        let musicTimer = null;
+
         function initAudio() {
             if (!audioCtx) {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -184,22 +179,54 @@
             }
         }
 
+        // Ритмичная 8-битная мелодия погони
+        const melodyNotes = [220, 246.94, 261.63, 293.66, 329.63, 293.66, 261.63, 246.94];
+        let noteStep = 0;
+
+        function playMusicBeat() {
+            if (isMuted || !audioCtx || isGameOver) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(melodyNotes[noteStep], now);
+
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.18);
+
+            noteStep = (noteStep + 1) % melodyNotes.length;
+        }
+
+        function startMusic() {
+            if (musicTimer) clearInterval(musicTimer);
+            musicTimer = setInterval(playMusicBeat, 180);
+        }
+
+        function stopMusic() {
+            if (musicTimer) {
+                clearInterval(musicTimer);
+                musicTimer = null;
+            }
+        }
+
         function playJumpSound(jumpNum) {
             if (isMuted || !audioCtx) return;
             const now = audioCtx.currentTime;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-
             osc.type = 'sine';
             const startFreq = jumpNum === 1 ? 180 : 280;
             const endFreq = jumpNum === 1 ? 420 : 600;
-
             osc.frequency.setValueAtTime(startFreq, now);
             osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.14);
-
             gain.gain.setValueAtTime(0.25, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
@@ -213,13 +240,10 @@
             notes.forEach((freq, i) => {
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(freq, now + i * 0.055);
-
                 gain.gain.setValueAtTime(0.25, now + i * 0.055);
                 gain.gain.exponentialRampToValueAtTime(0.008, now + i * 0.055 + 0.16);
-
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.start(now + i * 0.055);
@@ -235,10 +259,8 @@
             osc.type = 'sawtooth';
             osc.frequency.setValueAtTime(160, now);
             osc.frequency.linearRampToValueAtTime(45, now + 0.35);
-
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             osc.start(now);
@@ -249,10 +271,10 @@
             e.stopPropagation();
             isMuted = !isMuted;
             muteBtn.innerText = isMuted ? '🔇' : '🔊';
-            bgMusic.muted = isMuted;
+            if (isMuted) stopMusic();
+            else if (!isGameOver) startMusic();
         });
 
-        // === ЛОГИКА ИГРЫ ===
         const GAME_WIDTH = 800;
         const GAME_HEIGHT = 400;
         const groundY = 340;
@@ -410,153 +432,4 @@
             const padding = 8;
             return (
                 rect1.x + padding < rect2.x + rect2.width - padding &&
-                rect1.x + rect1.width - padding > rect2.x + padding &&
-                rect1.y + padding < rect2.y + rect2.height - padding &&
-                rect1.y + rect1.height - padding > rect2.y + padding
-            );
-        }
-
-        function drawEnvironment() {
-            ctx.font = '50px Arial';
-            ctx.fillText('🌕', 700, 70);
-
-            ctx.fillStyle = '#2c3e50';
-            ctx.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
-
-            ctx.fillStyle = '#95a5a6';
-            ctx.fillRect(0, groundY, GAME_WIDTH, 6);
-
-            ctx.fillStyle = '#f1c40f';
-            for (let i = 0; i < GAME_WIDTH; i += 60) {
-                let offset = (frame * gameSpeed) % 60;
-                ctx.fillRect(i - offset, groundY + 28, 30, 4);
-            }
-        }
-
-        function animate() {
-            if (isGameOver) return;
-
-            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-            frame++;
-
-            if (frame % 500 === 0) {
-                gameSpeed += 0.5;
-            }
-
-            if (frame % 90 === 0) {
-                clouds.push(new Cloud());
-            }
-            clouds.forEach((cloud, index) => {
-                cloud.update();
-                if (cloud.x < -100) clouds.splice(index, 1);
-            });
-
-            drawEnvironment();
-            player.update();
-
-            if (frame % Math.max(45, Math.floor(100 - gameSpeed * 3)) === 0) {
-                if (Math.random() > 0.2) {
-                    obstacles.push(new Obstacle());
-                }
-            }
-
-            if (frame % 65 === 0) {
-                items.push(new Item());
-            }
-
-            obstacles.forEach((obs, index) => {
-                obs.update();
-                if (checkCollision(player, obs)) {
-                    gameOver();
-                }
-                if (obs.x + obs.width < 0) {
-                    obstacles.splice(index, 1);
-                }
-            });
-
-            items.forEach((item, index) => {
-                item.update();
-                if (checkCollision(player, item)) {
-                    score++;
-                    scoreEl.innerText = score;
-                    playBottleSound();
-                    particles.push(new FloatingText('+1 Бульк!', player.x, player.y));
-                    items.splice(index, 1);
-                } else if (item.x + item.width < 0) {
-                    items.splice(index, 1);
-                }
-            });
-
-            particles.forEach((p, index) => {
-                p.update();
-                if (p.alpha <= 0) particles.splice(index, 1);
-            });
-
-            animationId = requestAnimationFrame(animate);
-        }
-
-        function startGame(e) {
-            if (e) e.stopPropagation();
-            initAudio();
-            isGameOver = false;
-            score = 0;
-            gameSpeed = 5.5;
-            frame = 0;
-            obstacles = [];
-            items = [];
-            clouds = [];
-            particles = [];
-            player.y = groundY - player.height;
-            player.dy = 0;
-            player.jumps = 0;
-            scoreEl.innerText = score;
-            overlay.style.display = 'none';
-
-            // Запуск музыки
-            bgMusic.play().catch(() => {});
-            animate();
-        }
-
-        function gameOver() {
-            isGameOver = true;
-            bgMusic.pause();
-            bgMusic.currentTime = 0;
-            playCrashSound();
-            cancelAnimationFrame(animationId);
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('chekushka_highscore', highScore);
-                highScoreEl.innerText = highScore;
-            }
-            overlayTitle.innerText = 'Споткнулся! 💥';
-            overlayDesc.innerHTML = `Ты успел собрать <b>${score}</b> чекушек.<br>Твой рекорд: <b>${highScore}</b>`;
-            startBtn.innerText = 'Попробовать снова';
-            overlay.style.display = 'flex';
-        }
-
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.code === 'ArrowUp') {
-                e.preventDefault();
-                if (isGameOver) {
-                    startGame();
-                } else {
-                    player.jump();
-                }
-            }
-        });
-
-        window.addEventListener('pointerdown', (e) => {
-            if (e.target === startBtn || e.target === muteBtn) return;
-            if (!isGameOver) {
-                e.preventDefault();
-                player.jump();
-            }
-        }, { passive: false });
-
-        startBtn.addEventListener('click', startGame);
-
-        drawEnvironment();
-        player.draw();
-    </script>
-</body>
-</html>
+                rect1.x + rect1.width - padding
